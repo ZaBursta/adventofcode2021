@@ -29,13 +29,15 @@ impl Display for BingoSquare {
 
 #[derive(Debug, Clone, Copy)]
 struct BingoBoard {
-    board: [[BingoSquare; 5]; 5]
+    board: [[BingoSquare; 5]; 5],
+    has_won: bool,
 }
 
 impl Default for BingoBoard {
     fn default() -> BingoBoard {
         BingoBoard {
-            board: Default::default()
+            board: Default::default(),
+            has_won: false,
         }
     }
 }
@@ -43,6 +45,7 @@ impl Default for BingoBoard {
 impl Display for BingoBoard {
     fn fmt(&self, _f: &mut Formatter<'_>) -> Result {
         println!("");
+        println!("Has {}won", if !self.has_won { "not "} else { "" });
         return Ok(for row in self.board {
              println!("{} {} {} {} {}", row[0], row[1], row[2], row[3], row[4]);
         })
@@ -110,47 +113,81 @@ fn score_board(bingo_board: &BingoBoard, last_call: u32) -> u32 {
     return score * last_call;
 }
 
-fn part1(bingo_calls: &Vec<u32>, bingo_boards: &mut Vec<BingoBoard>){
+fn generate_square_to_board_hash_map(bingo_boards: &mut Vec<BingoBoard>) -> HashMap<u32, Vec<(usize, (usize, usize))>> {
     let mut square_to_board_map = HashMap::new();
 
     bingo_boards
-        .iter()
-        .enumerate()
-        .for_each(|(board_index, bingo_board)| {
-            bingo_board.board
-                .iter()
-                .enumerate()
-                .for_each(|(row_index, row)|
-                    row
-                        .iter()
-                        .enumerate()
-                        .for_each(|(column_index, square)| {
-                            square_to_board_map
-                                .entry(square.value)
-                                .and_modify(|v: &mut Vec<(usize, (usize, usize))>| v.push((board_index, (row_index, column_index))))
-                                .or_insert(vec![(board_index, (row_index, column_index))]);
-                        }
-                    )
+    .iter()
+    .enumerate()
+    .for_each(|(board_index, bingo_board)| {
+        bingo_board.board
+            .iter()
+            .enumerate()
+            .for_each(|(row_index, row)|
+                row
+                    .iter()
+                    .enumerate()
+                    .for_each(|(column_index, square)| {
+                        square_to_board_map
+                            .entry(square.value)
+                            .and_modify(|v: &mut Vec<(usize, (usize, usize))>| v.push((board_index, (row_index, column_index))))
+                            .or_insert(vec![(board_index, (row_index, column_index))]);
+                    }
                 )
-        });
+            )
+    });
+
+    return square_to_board_map;
+}
+
+fn part1(bingo_calls: &Vec<u32>, bingo_boards: &mut Vec<BingoBoard>) {
+    let mut square_to_board_map = generate_square_to_board_hash_map(bingo_boards);
 
     for call in bingo_calls {
-        let hit_board_maps =
-        square_to_board_map
-            .entry(*call)
-            .or_default();
+        let hit_board_maps = square_to_board_map.entry(*call).or_default();
 
         for (board_index, (row_index, column_index)) in hit_board_maps {
             let mut bingo_board = bingo_boards.get_mut(*board_index).expect("Invalid Index");
+
             bingo_board.board[*row_index][*column_index].hit = true;
-            println!("Called {}, Hit Square {} on board {}", call, bingo_board.board[*row_index][*column_index], bingo_board);
             if has_bingo_with_new_hit(bingo_board, *row_index, *column_index) {
+                println!("First Board won with {}, on board {}", call, bingo_board);
                 println!("Score: {}", score_board(bingo_board, *call));
                 return;
             }
         }
     }
 }
+
+fn part2(bingo_calls: &Vec<u32>, bingo_boards: &mut Vec<BingoBoard>) {
+    let mut square_to_board_map = generate_square_to_board_hash_map(bingo_boards);
+
+    let mut winning_board_count = 0;
+    let total_board_count = bingo_boards.len();
+
+    for call in bingo_calls {
+        let hit_board_maps = square_to_board_map.entry(*call).or_default();
+
+        for (board_index, (row_index, column_index)) in hit_board_maps {
+            let mut bingo_board = bingo_boards.get_mut(*board_index).expect("Invalid Index");
+            if bingo_board.has_won {
+                continue;
+            }
+
+            bingo_board.board[*row_index][*column_index].hit = true;
+            if has_bingo_with_new_hit(bingo_board, *row_index, *column_index) {
+                bingo_board.has_won = true;
+                winning_board_count += 1;
+                if winning_board_count == total_board_count {
+                    println!("Last Board won with {}, on board {}", call, bingo_board);
+                    println!("Score: {}", score_board(bingo_board, *call));
+                }
+            }
+        }
+    }
+}
+
+
 fn main() {
     let input = include_str!("../input.txt");
     let mut lines = input.lines();
@@ -168,4 +205,5 @@ fn main() {
     }
 
     part1(&bingo_calls, &mut bingo_boards);
+    part2(&bingo_calls, &mut bingo_boards);
 }
