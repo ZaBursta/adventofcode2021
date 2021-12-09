@@ -35,6 +35,69 @@ fn part1(cavern: &Vec<Vec<u32>>) {
     println!("Risk Level Sum is {}", risk_level_sum);
 }
 
+fn depth_first_search(cavern: &Vec<Vec<u32>>, depth: u32, row_index: usize, column_index: usize, visited: &mut Vec<Vec<bool>>) -> u32 {
+    if visited[row_index][column_index] ||
+       cavern[row_index][column_index] == 9 ||
+       cavern[row_index][column_index] < depth
+    {
+        return 0;
+    }
+
+    visited[row_index][column_index] = true;
+
+    let mut basin_size = 1;
+    let depth = cavern[row_index][column_index];
+    if row_index != 0 {
+        basin_size += depth_first_search(cavern, depth, row_index - 1, column_index, visited);
+    }
+
+    if row_index != cavern.len() - 1 {
+        basin_size += depth_first_search(cavern, depth, row_index + 1, column_index, visited);
+    }
+
+    if column_index != 0 {
+        basin_size += depth_first_search(cavern, depth, row_index, column_index - 1, visited);
+    }
+
+    if column_index != cavern[row_index].len() - 1 {
+        basin_size += depth_first_search(cavern, depth, row_index, column_index + 1, visited);
+    }
+
+    return basin_size
+}
+
+fn part2(cavern: &Vec<Vec<u32>>) {
+    let low_points = get_low_points(cavern);
+    let mut top_basins: [u32; 3] = [0; 3];
+    let mut visited_squares: Vec<Vec<bool>> = vec![];
+
+    let mut row_index = 0;
+    for row in cavern {
+        visited_squares.push(vec![]);
+        for _column in row {
+            visited_squares[row_index].push(false);
+        }
+        row_index += 1;
+    }
+
+    for (row_index, column_index) in low_points {
+        let basin_size = depth_first_search(cavern, cavern[row_index][column_index], row_index, column_index, &mut visited_squares);
+
+        if basin_size > top_basins[0] {
+            top_basins[2] = top_basins[1];
+            top_basins[1] = top_basins[0];
+            top_basins[0] = basin_size;
+        } else if basin_size > top_basins[1] {
+            top_basins[2] = top_basins[1];
+            top_basins[1] = basin_size;
+        } else if basin_size > top_basins[2] {
+            top_basins[2] = basin_size;
+        }
+    }
+
+    println!("3 top sized basins are {}, {}, {} with a multiple of {}", top_basins[0], top_basins[1], top_basins[2], top_basins[0] * top_basins[1] *top_basins[2]);
+}
+
 fn main() {
     let mut cavern: Vec<Vec<u32>> = Default::default();
 
@@ -47,4 +110,5 @@ fn main() {
     }
 
     part1(&cavern);
+    part2(&cavern);
 }
