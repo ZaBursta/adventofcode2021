@@ -8,12 +8,22 @@ fn is_open_bracket(char: char) -> bool {
     }
 }
 
-fn score_from_char(char: char) -> i32 {
+fn corrupt_score_from_char(char: char) -> i32 {
     return match char {
         ')' => 3,
         ']' => 57,
         '}' => 1197,
         '>' => 25137,
+        _ => panic!("Not a scoring character")
+    }
+}
+
+fn incomplete_score_from_char(char: char) -> u128 {
+    return match char {
+        ')' => 1,
+        ']' => 2,
+        '}' => 3,
+        '>' => 4,
         _ => panic!("Not a scoring character")
     }
 }
@@ -38,7 +48,7 @@ fn part1(lines: &Vec<&str>) {
             } else {
                 let open_bracket = bracket_stack.pop().expect("Invalid Input. Closed Bracket without Matching Open Bracket.");
                 if closed_variant_of_open_bracket(open_bracket) != char {
-                    score += score_from_char(char);
+                    score += corrupt_score_from_char(char);
                     bracket_stack = vec![];
                     break;
                 }
@@ -46,7 +56,44 @@ fn part1(lines: &Vec<&str>) {
         }
     }
 
-    println!("Total score: {}", score);
+    println!("Total score for corrupt lines: {}", score);
+}
+
+fn part2(lines: &Vec<&str>) {
+    let mut bracket_stack = vec![];
+    let mut scores = vec![];
+
+    for line in lines {
+        for char in line.chars() {
+            if is_open_bracket(char) {
+                bracket_stack.push(char);
+            } else {
+                let open_bracket = bracket_stack.pop().expect("Invalid Input. Closed Bracket without Matching Open Bracket.");
+                if closed_variant_of_open_bracket(open_bracket) != char {
+                    bracket_stack = vec![];
+                    break;
+                }
+            }
+        }
+
+        let mut score: u128 = 0;
+        while let Some(bracket) = bracket_stack.pop() {
+            score = score * 5 + incomplete_score_from_char(closed_variant_of_open_bracket(bracket));
+            println!("Score: {} with {}", score, bracket);
+            if score > std::u64::MAX as u128 {
+                score = std::u128::MAX;
+                break;
+            }
+        }
+
+        if score != 0 {
+            scores.push(score);
+        }
+    }
+
+    scores.sort();
+    println!("Max is {}", std::u128::MAX);
+    println!("Middle score out of {} is {} (pos {})", scores.len(), scores.get(scores.len()/2).expect(""), scores.len()/2);
 }
 
 fn main() {
@@ -62,4 +109,8 @@ fn main() {
     let start = Instant::now();
     part1(&lines);
     println!("Part 1 took {:?}", start.elapsed());
+
+    let start = Instant::now();
+    part2(&lines);
+    println!("Part 2 took {:?}", start.elapsed());
 }
