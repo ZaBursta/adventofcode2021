@@ -79,7 +79,6 @@ fn part2(lines: &Vec<&str>) {
         let mut score: u128 = 0;
         while let Some(bracket) = bracket_stack.pop() {
             score = score * 5 + incomplete_score_from_char(closed_variant_of_open_bracket(bracket));
-            println!("Score: {} with {}", score, bracket);
             if score > std::u64::MAX as u128 {
                 score = std::u128::MAX;
                 break;
@@ -92,8 +91,7 @@ fn part2(lines: &Vec<&str>) {
     }
 
     scores.sort();
-    println!("Max is {}", std::u128::MAX);
-    println!("Middle score out of {} is {} (pos {})", scores.len(), scores.get(scores.len()/2).expect(""), scores.len()/2);
+    println!("Middle score out is {})", scores.get(scores.len()/2).expect(""));
 }
 
 fn main() {
